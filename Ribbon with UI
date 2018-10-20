@@ -1,0 +1,501 @@
+################## R I B B O N   W I T H   U I ########################
+
+import maya.cmds as mc
+import pymel.core as pm
+
+###### Ribbon Spine UI ######
+def UI(*args):
+    ###window
+    #check if window exists
+    if mc.window("ribbonUI", exists=True):
+        mc.deleteUI("ribbonUI")
+        
+    #create window
+    window=mc.window('ribbonUI', title = 'Ribbon Spine', w=300, h=300, mnb=False, mxb=False, sizeable=True)
+    mc.columnLayout(w=300,h=150)      
+
+    #character name
+    mc.text(l="name of character and body part")
+    mc.separator()
+    nameInput=mc.textField('charname',w=290, pht = "e.g. 'Death'", aie = True, ec = ribbonVar)
+    
+    #character name
+    mc.text(l="name of body part")
+    mc.separator()
+    partInput=mc.textField('partname',w=290, pht = "e.g. 'arm'", aie = True, ec = ribbonVar)
+    
+    #start joint name
+    mc.separator()
+    mc.text(l="name of start joint")
+    jntInput=mc.textField('JNTstart',w=290, aie = True, ec = ribbonVar)
+    
+    #rib division
+    mc.separator()
+    mc.text(l="divisions for ribbon")
+    ribdiv=mc.textField('ribdiv', w=50, aie = True, ec = ribbonVar)
+
+    #scale input
+    mc.separator()
+    mc.text(l="scale (default 1.0)")
+    scaleSet=mc.textField('scaleSet',w=50, pht = "1.0", aie = True, ec = ribbonVar)
+    
+    #end joint checkbox
+    mc.separator()
+    mc.text( label='specify end joint?')
+    mc.separator()
+    Endinput=mc.checkBox('endYe', label='yes')
+    
+    #end joint name
+    mc.separator()
+    mc.text(l="name of end joint")
+    endjntInput=mc.textField('JNTend',w=290, aie = True, ec = ribbonVar)
+    
+    #BUTTON
+    mc.separator()
+    mc.separator()
+    dotheDamnthing=mc.button(label='create',w=290,h=30,c=ribbonVar)
+    
+    #show window
+    mc.showWindow( 'ribbonUI' )
+
+######## ACTUAL SCRIPT ########
+def ccCube():
+        #top
+        mc.curve( point=[(-0.5,0.5,0.5), (0.5,0.5,0.5)], knot=[0,1], degree=1, name= name + '_cc_01')
+        mc.curve( point=[(-0.5,0.5,-0.5), (0.5,0.5,-0.5)], knot=[0,1], degree=1, name= name + '_1_cc_01' )
+        mc.curve( point=[(-0.5,0.5,0.5), (-0.5,0.5,-0.5)], knot=[0,1], degree=1, name= name + '_2_cc_01' )
+        mc.curve( point=[(0.5,0.5,-0.5), (0.5,0.5,0.5)], knot=[0,1], degree=1, name= name + '_3_cc_01' )
+        #bottom
+        mc.curve( point=[(-0.5,-0.5,0.5), (0.5,-0.5,0.5)], knot=[0,1], degree=1, name= name + '_4_cc_01' )
+        mc.curve( point=[(-0.5,-0.5,-0.5), (0.5,-0.5,-0.5)], knot=[0,1], degree=1, name= name + '_5_cc_01' )
+        mc.curve( point=[(-0.5,-0.5,0.5), (-0.5,-0.5,-0.5)], knot=[0,1], degree=1, name= name + '_6_cc_01' )
+        mc.curve( point=[(0.5,-0.5,-0.5), (0.5,-0.5,0.5)], knot=[0,1], degree=1, name= name + '_7_cc_01' )
+        #sides
+        mc.curve( point=[(-0.5,-0.5,0.5), (-0.5,0.5,0.5)], knot=[0,1], degree=1, name= name + '_8_cc_01' )
+        mc.curve( point=[(-0.5,-0.5,-0.5), (-0.5,0.5,-0.5)], knot=[0,1], degree=1, name= name + '_9_cc_01' )
+        mc.curve( point=[(0.5,-0.5,0.5), (0.5,0.5,0.5)], knot=[0,1], degree=1, name= name + '_10_cc_01' )
+        mc.curve( point=[(0.5,-0.5,-0.5), (0.5,0.5,-0.5)], knot=[0,1], degree=1, name= name + '_11_cc_01' )
+        #combine
+        control_object = name + '_cc_01'
+        for number in range(1,12):
+        	mc.parent( mc.listRelatives( name + '_' + str(number) + '_cc_01', shapes=True ), control_object, relative=True, shape=True)
+        	mc.delete(name + '_' + str(number) + '_cc_01')
+        control_shapes = mc.listRelatives( control_object, shapes=True )
+        for control_shape in control_shapes:
+            mc.setAttr( control_shape + '.overrideEnabled', True)
+            if 'LFT' in str(control_object):
+                mc.setAttr( control_shape + '.overrideColor', 6 )
+                if 'settings' in str(control_object) or 'secondary' in str(control_object) or 'ribbon' in str(control_object):
+                    mc.setAttr( control_shape + '.overrideColor', 15 )
+            elif 'RGT' in str(control_object):
+                mc.setAttr( control_shape + '.overrideColor', 13 )
+                if 'settings' in str(control_object) or 'secondary' in str(control_object) or 'ribbon' in str(control_object):
+                    mc.setAttr( control_shape + '.overrideColor', 12 )
+            else:
+                mc.setAttr( control_shape + '.overrideColor', 22 )
+                if 'settings' in str(control_object) or 'secondary' in str(control_object) or 'ribbon' in str(control_object):
+                    mc.setAttr( control_shape + '.overrideColor', 25 ) 
+                    
+        #create offset group
+        mc.group(n=name+'_cc_os_grp_01')
+    
+def ribbonVar(*args):
+    name=mc.textField('charname',q=True,text=True)
+    part='_'+mc.textField('partname',q=True,text=True)
+    startJNT=mc.textField('JNTstart',q=True,text=True)
+    endYea=mc.checkBox('endYe',q=True,v=True)
+    ln=int(mc.textField('ribdiv',q=True,text=True))
+    scale = float(mc.textField('scaleSet',q=True,text=True))
+    lnm=ln+3
+    
+    mc.polyCube(n='ribCube1')
+    mc.scale(1,ln,1)
+        
+    pm.language.Mel.eval("int $hairCreate=`getAttr ribCube1.scaleY`;")
+    mc.delete('ribCube1')
+    if 'LFT' in startJNT:
+        side='_LFT'
+    elif 'RGT' in startJNT:
+        side='_RGT'
+    else:
+        side=''
+    prefix= name + part + side +'_ribbon_settings'
+    
+    
+    valist = []
+    JTV=mc.listRelatives(startJNT,ad=True)
+    for eachSel in JTV:
+        JtraVal=mc.getAttr(eachSel+'.translateX')
+        valist.append(JtraVal)
+    
+    if endYea is True:
+        endJNT=mc.textField('JNTend',q=True,text=True)
+        PTV=mc.listRelatives(endJNT,ad=True)
+        YTV=[]
+        pList=[]
+        for eachSel in JTV:
+            if eachSel not in PTV:
+                YTV.append(eachSel)
+                y=mc.getAttr(eachSel+'.translateX')
+                pList.append(y)
+        Jlen=sum(pList)
+        ribPos=len(pList)
+        #print pList
+    else:
+        endJNT=JTV[0]
+        Jlen=sum(valist)
+        ribPos=len(JTV)
+    #print ribPos
+    
+    #### create and position surface ####
+    ribbon=mc.nurbsPlane(ax=(0,0,1),w=1,lr=Jlen,u=1,v=1,d=1,n=name+part+side+'_ribbon_01')
+    wsTop=mc.xform(startJNT,q=1,ws=1,rp=1)
+    wsLow=mc.xform(endJNT,q=1,ws=1,rp=1)    
+    mc.move(((wsTop[0]+wsLow[0])*.5),((wsTop[1]+wsLow[1])*.5),((wsTop[2]+wsLow[2])*.5))
+    JoTopY=mc.getAttr(startJNT+'.jointOrientY')
+    JoTopZ=mc.getAttr(startJNT+'.jointOrientZ')
+    if JoTopZ != 0:
+        mc.rotate(JoTopY,0,(JoTopZ-90))
+    else:
+        mc.rotate(JoTopY,0,90)
+    mc.rebuildSurface(ch=1,su=1,sv=ribPos,du=1,dv=1,dir=2)
+    
+    mc.select(name+part+side+'_ribbon_01.cv[0:1][0]')
+    mc.move(wsTop[0],wsTop[1],wsTop[2])
+    mc.setAttr(name+part+side+'_ribbon_01.cv[1][0].xValue',0)
+    mc.setAttr(name+part+side+'_ribbon_01.cv[0][0].xValue',0)
+    
+    if endYea is True: 
+        for i,e in zip(reversed(YTV),YTV):
+            wsi=mc.xform(i,q=1,ws=1,rp=1)
+            go=YTV.index(e)
+            mc.select(name+part+side+'_ribbon_01.cv[0:1]['+str(go+1)+']')
+            mc.move(wsi[0],wsi[1],wsi[2],ws=True)
+            mc.setAttr(name+part+side+'_ribbon_01.cv[1]['+str(go+1)+'].xValue',0)
+            mc.setAttr(name+part+side+'_ribbon_01.cv[0]['+str(go+1)+'].xValue',0)
+    
+    else:
+        for i,e in zip(reversed(JTV),JTV):
+            wsi=mc.xform(i,q=1,ws=1,rp=1)
+            go=JTV.index(e)
+            mc.select(name+part+side+'_ribbon_01.cv[0:1]['+str(go+1)+']')
+            mc.move(wsi[0],wsi[1],wsi[2],ws=True)
+            mc.setAttr(name+part+side+'_ribbon_01.cv[1]['+str(go+1)+'].xValue',0)
+            mc.setAttr(name+part+side+'_ribbon_01.cv[0]['+str(go+1)+'].xValue',0)
+    
+    #### rebuild curve and setup hair system ####
+    mc.select(name+part+side+'_ribbon_01')
+    mc.rebuildSurface(ch=1,su=1,sv=ln,du=1,dv=3,dir=2)
+    pm.language.Mel.eval("createHair 1 $hairCreate 10 0 0 0 0 5 0 2 1 1;")
+    mc.select('nucleus1','hairSystem1OutputCurves','hairSystem1')
+    mc.delete()
+    mc.select('hairSystem1Follicles')
+    mc.rename(name+part+side+'_ribbon_BN_grp_01')    
+
+    ## make settings control attributes ##
+    mc.circle(radius=0.25*scale, normal=[0,1,0], name = prefix + '_cc_01')
+    mc.circle(radius=0.5*scale, normal=[0,1,0], sections=72, name = prefix + '_add_cc_01')
+    mc.select( prefix + '_add_cc_01.cv[5:9]', replace=True )
+    mc.select( prefix + '_add_cc_01.cv[17:21]', add=True )
+    mc.select( prefix + '_add_cc_01.cv[29:33]', add=True )
+    mc.select( prefix + '_add_cc_01.cv[41:46]', add=True )
+    mc.select( prefix + '_add_cc_01.cv[53:57]', add=True )
+    mc.select( prefix + '_add_cc_01.cv[65:69]', add=True )
+    mc.scale(0.75,0.75,0.75)
+    mc.select( clear=True )
+    control_object = prefix + '_cc_01'
+    mc.parent( mc.listRelatives( prefix + '_add_cc_01', shapes=True ), control_object, relative=True, shape=True)
+    mc.delete(prefix + '_add_cc_01')
+    mc.setAttr( prefix + "_cc_01.translateX", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( prefix + "_cc_01.translateY", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( prefix + "_cc_01.translateZ", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( prefix + "_cc_01.rotateX", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( prefix + "_cc_01.rotateY", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( prefix + "_cc_01.rotateZ", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( prefix + "_cc_01.scaleX", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( prefix + "_cc_01.scaleY", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( prefix + "_cc_01.scaleZ", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( prefix + "_cc_01.visibility", lock=True, keyable=False, channelBox=False)
+    
+    control_object = prefix + '_cc_01' or name+part+side+'_cc_01'
+    
+    control_shapes = mc.listRelatives( control_object, shapes=True )
+    for control_shape in control_shapes:
+        mc.setAttr( control_shape + '.overrideEnabled', True)
+        mc.setAttr( control_shape + '.overrideColor', 31 )
+    
+    mc.group(n=prefix+'_os_grp_01')
+    mc.move(((wsTop[0]+wsLow[0])*.5),((wsTop[1]+wsLow[1])*.5),((wsTop[2]+wsLow[2])*.5)-1)
+    mc.rotate(0,0,-90)
+    mc.group(prefix+'_os_grp_01',n=prefix+'_constraint_GRP_01')
+    
+    #adding custom attributes
+    mc.addAttr(prefix+'_cc_01', shortName='JNTccVis', longName='Ribbon_Joint_Controls_Visibility',attributeType='bool',keyable=True,h=False)
+    mc.addAttr(prefix+'_cc_01', shortName='secVis', longName='Secondary_Controls_Visibility',attributeType='bool',keyable=True,h=False)
+    mc.addAttr(prefix+'_cc_01', shortName='tertVis', longName='Gonzo_Controls_Visibility',attributeType='bool',keyable=True,h=False)
+    mc.addAttr(prefix+'_cc_01', shortName='BSHPctrls', longName='BLENDSHAPE_CONTROLS',attributeType='enum',enumName='*********',keyable=True,h=False)
+    mc.addAttr(prefix+'_cc_01', shortName='Sinectrls', longName='Sine_Controls',attributeType='enum',enumName='----------',keyable=True,h=False)
+    mc.addAttr(prefix+'_cc_01', shortName='SineAmp', longName='Sine_Amplitude', attributeType='float', defaultValue=0.0,minValue=-5.0,maxValue=5.0, keyable=True, h=False)
+    mc.addAttr(prefix+'_cc_01', shortName='SineWavLen', longName='Sine_Wavelength',attributeType='float', defaultValue=1.0, minValue=.0001,maxValue=100, keyable=True, h=False)
+    mc.addAttr(prefix+'_cc_01', shortName='SineRot', longName='Sine_Rotation',attributeType='doubleAngle', defaultValue=0.0, keyable=True, h=False)
+    mc.addAttr(prefix+'_cc_01', shortName='SineOffSet', longName='Sine_Offset',attributeType='float', defaultValue=0.0, keyable=True, h=False)
+    mc.addAttr(prefix+'_cc_01', shortName='SineDropoff', longName='Sine_Dropoff',attributeType='float', defaultValue=0.0, minValue=-1,maxValue=1, keyable=True, h=False)
+    mc.addAttr(prefix+'_cc_01', shortName='Twistctrls', longName='Twist_Controls',attributeType='enum',enumName='----------',keyable=True,h=False)
+    mc.addAttr(prefix+'_cc_01', shortName='Twiststartangle', longName='Twist_Start_Angle',attributeType='doubleAngle', defaultValue=0.0, minValue=-859, maxValue=859, keyable=True, h=False)
+    mc.addAttr(prefix+'_cc_01', shortName='Twistendangle', longName='Twist_End_Angle',attributeType='doubleAngle', defaultValue=0.0, minValue=-859, maxValue=859, keyable=True, h=False)
+    mc.addAttr(prefix + '_cc_01', shortName='TwstCCvis', longName = 'Twist_control_visibility', attributeType='bool',keyable=True,h=False)
+    
+    #arm joint visibility
+    
+    #### setup follicles and joints ####
+    sel=mc.ls(tr=True,r=True)
+    for obj in sel:
+        if 'curve' in obj and 'settings' not in obj:
+            mc.select(obj)
+            mc.delete()
+        if 'ribbon_01Follicle' in obj:
+            mc.select(obj)
+            heh=mc.rename(name+side+part+'_ribbonFollicle_01')
+            mc.select(cl=True)
+            lol=mc.joint(n=heh+side+part+'_BN_01',rad=.2 * scale)
+            mc.parent(lol,heh,r=True)
+            mc.parent(w=True)
+            mc.parent(lol,heh)
+            print lol
+            
+            mc.connectAttr(name + '_ribbon_bone_vis_COND_01.outColorR', lol + '.visibility')
+
+            numT = heh.split('_')
+            num = numT[4]
+            ccFoll = mc.circle(n = name + side + part + '_ribbonFollicle_' + num + side + part + '_cc_01')
+            ccGrp = mc.group(empty = True, n = name + side + part + '_ribbonFollicle_' + num + side + part + '_cc_os_grp_01')
+
+            #customize circle
+            mc.setAttr( ccFoll[0] + '.overrideEnabled', True)
+            if 'LFT' in str(ccFoll[0]):
+                mc.setAttr( ccFoll[0] + '.overrideColor', 6 )
+                if 'settings' in str(ccFoll[0]) or 'secondary' in str(ccFoll[0]) or 'ribbon' in str(ccFoll[0]):
+                    mc.setAttr( ccFoll[0] + '.overrideColor', 15 )
+            elif 'RGT' in str(ccFoll[0]):
+                mc.setAttr( ccFoll[0] + '.overrideColor', 13 )
+                if 'settings' in str(ccFoll[0]) or 'secondary' in str(ccFoll[0]) or 'ribbon' in str(ccFoll[0]):
+                    mc.setAttr( ccFoll[0] + '.overrideColor', 12 )
+            else:
+                mc.setAttr( ccFoll[0] + '.overrideColor', 22 )
+                if 'settings' in str(ccFoll[0]) or 'secondary' in str(ccFoll[0]) or 'ribbon' in str(ccFoll[0]):
+                    mc.setAttr( ccFoll[0] + '.overrideColor', 25 ) 
+            mc.select(ccFoll[0] + '.cv[0:7]')
+            mc.rotate(90,90,0)
+            mc.scale(scale,scale,scale)
+            mc.parent(ccFoll, ccGrp)
+            mc.parent(ccGrp,heh,r=True)
+            mc.parent(w=True)
+            mc.parent(ccGrp,heh)
+            mc.parent(lol,ccFoll)
+            mc.scaleConstraint(name + '_secondary_global_cc_01', ccGrp)
+            mc.connectAttr(name + part + side + '_ribbon_settings_cc_01.Ribbon_Joint_Controls_Visibility',ccGrp + '.visibility')
+
+    
+    ####Setup Blendshapes
+    #create duplicate surfaces for blend shaping deformations
+    mc.select(ribbon)
+    mc.duplicate()
+    CLUcv=mc.rename(name+part+side+'_ClusterBlend_01')
+    mc.move(2,-2,-1,r=True)
+    mc.duplicate(st=True)
+    sineBSHP=mc.rename(name+part+side+'_SineBlend_01')
+    mc.duplicate(st=True)
+    twistBSHP=mc.rename(name+part+side+'_twistBlend_01')
+    ribrot=mc.xform(name+part+side+'_ribbon_01',q=1,ro=True)
+    if 'RGT' not in side:
+        if ribrot[2] < 90:
+            mc.rotate(0,0,180,r=True)
+    
+    #assign clusters to each CV of the cluster blendshape
+    def curveboi():
+        dub=mc.ls(tr=True,r=True)
+        if name+part+side+'_ribbon_secondary_clusters_grp_01' in dub:
+            for hi in range(lnm):
+                curveCVs = mc.ls(CLUcv + ".cv[0:1]["+str(hi)+"]")
+                for i, cv in enumerate(curveCVs):
+                    s=mc.cluster(cv, cv,n=CLUcv+'GonzoClu')
+                GcluList=[]
+                se=mc.ls(tr=True,r=True)
+                for obj in se:
+                    if name + part + side + '_ClusterBlend_01GonzoClu' in obj:
+                        mc.select(add=True)
+                        GcluList.append(obj)
+                        print GcluList
+            mc.group(GcluList,n=name+part+side+'_ribbon_clusters_Gonzo_grp_01')                    
+        else:
+            cluList=[]
+            for hi in range(lnm):
+                curveCVs = mc.ls(CLUcv + ".cv[0:1]["+str(hi)+"]")
+                for i, cv in enumerate(curveCVs):
+                    s=mc.cluster(cv, cv,n=CLUcv)
+                    se=mc.ls(tr=True,r=True)
+                for obj in se:
+                    if name+part+side+'_Cluster' in obj:
+                        mc.select(add=True)
+                        cluList.append(obj)
+            mc.group(cluList,n=name+part+side+'_ribbon_secondary_clusters_grp_01')
+    curveboi()
+    curveboi()
+    
+    #set up sine deformer
+    mc.select(sineBSHP)
+    mc.nonLinear(type = 'sine')
+    mc.rename('sine1', name+part+side+ "_sine_01")
+    mc.rename('sine1GroupId', name+part+side+ "_sine_groupId_01")
+    mc.rename('sine1GroupParts', name+part+side+ "_sine_groupParts_01")
+    mc.rename('sine1Handle', name+part+side+ "_sineHandle_01")
+    mc.select("sine*",ne=True)
+    mc.rename(name+part+side+"_sine_Set_01")
+    
+    #set up twist deformer
+    mc.select(twistBSHP)
+    mc.nonLinear(type = 'twist')
+    mc.rename('twist1', name+part+side+"_twist_01")
+    mc.rename('twist1GroupId', name+part+side+"_twist_groupId_01")
+    mc.rename('twist1GroupParts', name+part+side+"_twist_groupParts_01")
+    mc.rename('twist1Handle', name+part+side+"_twistHandle_01")
+    mc.select("twist*",ne=True)
+    mc.rename(name+part+side+"_twist_Set_01")
+    if 'RGT' in side:
+        mc.rotate(0,0,180,r=True)
+    
+    #### combine all the surfaces into one blendshape
+    mc.select(name+part+side+'_ClusterBlend_01',name+part+side+'_SineBlend_01',name+part+side+'_twistBlend_01',name+part+side+'_ribbon_01')
+    mc.blendShape(n=name+part+side+'_ribbonBSHP_01')
+    mc.setAttr(name+part+side+'_ribbonBSHP_01.'+name+part+side+'_ClusterBlend_01',1)
+    mc.setAttr(name+part+side+'_ribbonBSHP_01.'+name+part+side+'_SineBlend_01',1)
+    mc.setAttr(name+part+side+'_ribbonBSHP_01.'+name+part+side+'_twistBlend_01',1)
+    
+    #connecting attributes
+    mc.connectAttr(prefix+'_cc_01.SineAmp',name+part+side+'_sineHandle_01Shape.amplitude',f=True)
+    mc.connectAttr(prefix+'_cc_01.SineWavLen',name+part+side+'_sineHandle_01Shape.wavelength',f=True)
+    mc.connectAttr(prefix+'_cc_01.SineOffSet',name+part+side+'_sineHandle_01Shape.offset',f=True)
+    mc.connectAttr(prefix+'_cc_01.SineDropoff',name+part+side+'_sineHandle_01Shape.dropoff',f=True)
+    mc.connectAttr(prefix+'_cc_01.Twiststartangle',name+part+side+'_twistHandle_01Shape.startAngle',f=True)
+    mc.connectAttr(prefix+'_cc_01.Twistendangle',name+part+side+'_twistHandle_01Shape.endAngle',f=True)
+    mc.connectAttr(prefix+'_cc_01.SineRot',name+part+side+'_sineHandle_01.rotateY',f=True)
+    
+    
+    ####create curve controls for twist
+    
+    mc.circle(n=name+part+side+'_twist_start_cc_01',ch=False,  normal = [1,0,0], radius = scale, sections=4, degree=1)
+    mc.select(name+part+side+'_twist_start_cc_01.cv[0:4]')
+    mc.rotate(0,0,0)
+    mc.scale(.7,.7,.7)
+    mc.circle(n=name+part+side+'_twist_end_cc_01',ch=False,  normal = [1,0,0], radius = scale, sections=4, degree=1)
+    mc.select(name+part+side+'_twist_end_cc_01.cv[0:4]')
+    mc.rotate(0,0,0)
+    mc.scale(.7,.7,.7)
+    cc=[]
+    cc.append(name+part+side+'_twist_start_cc_01')
+    cc.append(name+part+side+'_twist_end_cc_01')
+    
+    for circ in cc:
+        mc.setAttr(circ+'Shape.overrideEnabled',True)
+        mc.setAttr(circ+'Shape.overrideColor',31)
+    mc.group(name+part+side+'_twist_start_cc_01',n=name+part+side+'_twist_start_cc_os_grp_01')
+    mc.group(name+part+side+'_twist_end_cc_01',n=name+part+side+'_twist_end_cc_os_grp_01')
+    
+    #position twist joints controls and lock & hide attributes
+    mc.setAttr( name+part+side+"_twist_start_cc_01.translateY", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_start_cc_01.translateZ", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_start_cc_01.rotateX", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_start_cc_01.rotateY", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_start_cc_01.rotateZ", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_start_cc_01.scaleX", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_start_cc_01.scaleY", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_start_cc_01.scaleZ", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_start_cc_01.visibility", lock=True, keyable=False, channelBox=False)
+    
+    mc.setAttr( name+part+side+"_twist_end_cc_01.translateY", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_end_cc_01.translateZ", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_end_cc_01.rotateX", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_end_cc_01.rotateY", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_end_cc_01.rotateZ", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_end_cc_01.scaleX", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_end_cc_01.scaleY", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_end_cc_01.scaleZ", lock=True, keyable=False, channelBox=False)
+    mc.setAttr( name+part+side+"_twist_end_cc_01.visibility", lock=True, keyable=False, channelBox=False)
+    
+    mc.parent(name+part+side+'_twist_start_cc_os_grp_01',startJNT,r=True)
+    mc.parent(w=True)
+    mc.parent(name+part+side+'_twist_end_cc_os_grp_01',endJNT,r=True)
+    mc.parent(w=True)
+    mc.parentConstraint(endJNT,name+part+side+'_twist_end_cc_os_grp_01',mo=True)
+    mc.parentConstraint(startJNT,name+part+side+'_twist_start_cc_os_grp_01',mo=True)
+    
+    #connect attributes for twist
+    #start
+    mc.createNode('multiplyDivide',n=name+part+side+'_twist_start_MD_01')
+    mc.createNode('remapValue',n=name+part+side+'_twist_start_RMV_01')
+    mc.setAttr(name+part+side+'_twist_start_RMV_01.inputMin',0)
+    mc.setAttr(name+part+side+'_twist_start_RMV_01.inputMax',Jlen)
+    mc.setAttr(name+part+side+'_twist_start_RMV_01.outputMin',-1)
+    mc.setAttr(name+part+side+'_twist_start_RMV_01.outputMax',1)
+    mc.connectAttr(name+part+side+'_twist_start_cc_01.translateX',name+part+side+'_twist_start_RMV_01.inputValue',f=True)
+    mc.setAttr(name+part+side+'_twist_start_MD_01.input2X',-1)
+    mc.connectAttr(name+part+side+'_twist_start_RMV_01.outValue',name+part+side+'_twist_start_MD_01.input1X',f=True)
+    mc.connectAttr(name+part+side+'_twist_start_MD_01.outputX',name+part+side+'_twist_01.highBound',f=True)
+    
+    #end
+    mc.createNode('multiplyDivide',n=name+part+side+'_twist_end_MD_01')
+    mc.createNode('remapValue',n=name+part+side+'_twist_end_RMV_01')
+    '''
+    if 'RGT' in side:
+        mc.setAttr(name+part+side+'_twist_end_RMV_01.inputMax',0)
+        mc.setAttr(name+part+side+'_twist_end_RMV_01.inputMin',Jlen)
+    
+    else:
+    '''
+    mc.setAttr(name+part+side+'_twist_end_RMV_01.inputMin',0)
+    mc.setAttr(name+part+side+'_twist_end_RMV_01.inputMax',-Jlen)
+    mc.setAttr(name+part+side+'_twist_end_RMV_01.outputMin',1)
+    mc.setAttr(name+part+side+'_twist_end_RMV_01.outputMax',-1)
+    mc.connectAttr(name+part+side+'_twist_end_cc_01.translateX',name+part+side+'_twist_end_RMV_01.inputValue',f=True)
+    mc.setAttr(name+part+side+'_twist_end_MD_01.input2X',-1)
+    mc.connectAttr(name+part+side+'_twist_end_RMV_01.outValue',name+part+side+'_twist_end_MD_01.input1X',f=True)
+    mc.connectAttr(name+part+side+'_twist_end_MD_01.outputX',name+part+side+'_twist_01.lowBound',f=True)
+    
+    #transform limits for twist controls
+    mc.transformLimits(name+part+side+'_twist_end_cc_01',tx=(-Jlen,0),etx=(True,True))
+    mc.transformLimits(name+part+side+'_twist_start_cc_01',tx=(0,Jlen),etx=(True,True))
+    
+    #### organize and group
+    mc.group(name+part+side+'_ClusterBlend_01',name+part+side+'_SineBlend_01',name+part+side+'_twistBlend_01',n=name+part+side+'_ribbon_Blendshapes_grp_01')
+    mc.group(name+part+side+'_twistHandle_01',name+part+side+'_sineHandle_01', n=name+part+side+'_deformer_handle_GRP_01')
+    mc.group(name+part+side+'_ribbon_secondary_clusters_grp_01',name+part+side+'_ribbon_clusters_Gonzo_grp_01',n=name+part+side+'_ribbon_cluster_groups_01')
+    mc.group(name+part+side+'_deformer_handle_GRP_01',name+part+side+'_ribbon_Blendshapes_grp_01',name+part+side+'_ribbon_cluster_groups_01',n=name+part+side+'_ribbon_extras_grp_01')
+    mc.group(prefix+'_constraint_GRP_01',name+part+side+'_twist_start_cc_os_grp_01',name+part+side+'_twist_end_cc_os_grp_01',n=name+part+side+'_ribbon_blendshape_controls_grp_01')
+    mc.parent(name+part+side+'_ribbon_01',name+part+side+'_ribbon_extras_grp_01')
+    mc.parent(name+part+side+'_ribbon_BN_grp_01',name+'_no_transform_visible_GRP_01')
+    mc.parent(name+part+side+'_ribbon_extras_grp_01',name+'_no_transform_hidden_GRP_01')
+    mc.parent(name+part+side+'_ribbon_blendshape_controls_grp_01', name+'_secondary_global_cc_01')
+    
+    ####Bind ribbon to joint
+    mc.skinCluster(startJNT,ribbon)
+    #skinning without the end joint: mc.skinCluster(startJNT,JTV[1:],ribbon,tsb=True)    
+    
+    #create secondaries groups
+    if not mc.objExists(name + side + part + '_controls_GRP_01'):
+        mc.group(n = name + side + part + '_controls_GRP_01', empty = True)
+        mc.parent(name + side + part + '_controls_GRP_01', name+'_controls_GRP_01')
+    mc.group(n=name+side+part+ '_secondary_controls_grp_01',empty=True)
+    mc.group(n=name+side+part+ '_Gonzo_controls_grp_01',empty=True)
+    
+    mc.parent(name+side+part+'_secondary_controls_grp_01', name + side + part + '_controls_GRP_01')
+    mc.parent(name+side+part+'_Gonzo_controls_grp_01', name + side + part + '_controls_GRP_01')
+    
+    mc.connectAttr(name + part +side+ '_ribbon_settings_cc_01.Secondary_Controls_Visibility', name+side+part+'_secondary_controls_grp_01.visibility', f = True)
+    mc.connectAttr(name + part +side+ '_ribbon_settings_cc_01.Gonzo_Controls_Visibility', name+side+part+'_Gonzo_controls_grp_01.visibility', f = True)
+    
+    #group and hide twist controls
+    mc.group(name + part + side + '_twist_start_cc_os_grp_01', name + part + side + '_twist_end_cc_os_grp_01', n = name + part + side + '_twist_controls_grp_01')
+    mc.connectAttr(name + part + side + '_ribbon_settings_cc_01.Twist_control_visibility', name + part + side + '_twist_controls_grp_01.visibility')
+    
+    
+UI()
