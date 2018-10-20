@@ -1,0 +1,130 @@
+'''
+Y RIBBON
+	-parent constrain clusters to secondary ccs (possibly by hand)
+	-adjust parent constraints to get nice curves and all that.(by hand)
+'''
+
+import maya.cmds as mc
+import pymel.core as pm
+
+baseRib = mc.ls(sl = True)
+getName = baseRib[0].split('_')
+name = getName[0]
+part = '_' + getName[1]
+side = '_' + getName[2]
+
+print part, side
+
+lennyyyy = mc.listRelatives(name + part + side +  '_ribbon_BN_grp_01')
+ln = len(lennyyyy)
+
+mc.polyCube(n='ribCube1')
+mc.scale(1,ln,1)
+pm.language.Mel.eval("int $hairCreate=`getAttr ribCube1.scaleY`;")
+mc.delete('ribCube1')
+
+lnm = ln + 3
+
+
+#duplicate, unlock and position yRibbon
+yo = mc.duplicate(baseRib, n = name + side + part + '_yRibbon_RIB_01')
+mc.parent(yo, w =True)##REMOVE LATER/replace with correct parenting really it's whatever
+
+mc.setAttr(name + side + part + '_yRibbon_RIB_01.tx', l = 0)
+mc.setAttr(name + side + part + '_yRibbon_RIB_01.ty', l = 0)
+mc.setAttr(name + side + part + '_yRibbon_RIB_01.tz', l = 0)
+mc.setAttr(name + side + part + '_yRibbon_RIB_01.rx', l = 0)
+mc.setAttr(name + side + part + '_yRibbon_RIB_01.ry', l = 0)
+mc.setAttr(name + side + part + '_yRibbon_RIB_01.rz', l = 0)
+mc.setAttr(name + side + part + '_yRibbon_RIB_01.sx', l = 0)
+mc.setAttr(name + side + part + '_yRibbon_RIB_01.sy', l = 0)
+mc.setAttr(name + side + part + '_yRibbon_RIB_01.sz', l = 0)
+
+#possibly set up different situation for legs?
+if 'arm' in part:
+    mc.rotate(0,-90,90,yo)
+else:
+    mc.rotate(0,90,180, yo)#, r= True)
+
+#### setup hair system ####
+mc.select(yo)
+pm.language.Mel.eval("createHair 1 $hairCreate 10 0 0 0 0 5 0 2 1 1;")
+mc.select('nucleus1','hairSystem1OutputCurves','hairSystem1')
+mc.delete()
+mc.select('hairSystem1Follicles')
+mc.rename(name + side + part + '_yRibbon_LOC_grp_01')
+
+sel=mc.listRelatives(name + side + part + '_yRibbonFollicle_grp_01', ad = True)
+
+for obj in sel:
+    if not 'Shape' in obj:
+        if 'curve' in obj:
+            mc.select(obj)
+            mc.delete()
+        if 'RIB_01Follicle' in obj:
+            mc.select(obj)
+            heh=mc.rename(name + side + part + '_yRibbonFollicle_01')
+
+#set up clusters
+CLUcv = name + side + part + '_yRibbon_RIB_01'
+
+cluList=[]
+for hi in range(lnm):
+    curveCVs = mc.ls(CLUcv + ".cv[0:1]["+str(hi)+"]")
+    for i, cv in enumerate(curveCVs):
+        s=mc.cluster(cv, cv,n=CLUcv)
+        mc.rename(name + side + part + '_yRibbon_cluster_01')
+        se=mc.ls(tr=True,r=True)
+    for obj in se:
+        if '_yRibbon' in obj and side in obj and part in obj and 'cluster' in obj:
+            mc.select(add=True)
+            cluList.append(obj)
+mc.group(cluList,n= name + part + side +'_yRibbon_clusters_grp_01')
+
+
+##quick locator cluster situation
+def cluLoc():    
+    clus = mc.ls(name + side + part + '_yRibbon_cluster_0*', tr = True)
+    
+    #create groups for locators
+    if not mc.objExists(name + '_cluster_locators_grp_01'):
+        mc.group(n = name + '_cluster_locators_grp_01', empty = True)
+        mc.parent(name + '_cluster_locators_grp_01', name + '_no_transform_hidden_GRP_01')
+    mc.group(n = name + side + part + '_control_LOC_GRP_01', empty = True)
+    mc.parent(name + side + part + '_control_LOC_GRP_01', name + '_cluster_locators_grp_01')
+    
+    for clu in clus:
+        #cluStrip = clu.rstrip('Handle')
+        #print cluStrip
+        
+        #create locators and parent within rig
+        mc.spaceLocator(n = clu + '_control_LOC_01')
+        mc.group(clu + '_control_LOC_01', n = clu + '_control_LOC_os_grp_01')
+        mc.delete(mc.pointConstraint(clu, clu + '_control_LOC_os_grp_01', mo = False))
+        mc.parent(clu + '_control_LOC_os_grp_01', name + side + part + '_control_LOC_GRP_01')
+        
+        #connect loc to cluster
+        mc.cluster(clu, e = True, bs = 1, wn=(clu + '_control_LOC_01', clu + '_control_LOC_01'))
+cluLoc()
+
+#create PMA node
+mc.createNode('plusMinusAverage', n = name + side + part + '_follicle_0' + str(num) + '_rotfix_PMA_01')
+mc.connectAttr(name + side + part + '_yRibbonFollicle_0' + str(num) + '.rotateX', name + side + part + '_follicle_0' + str(num) + '_rotfix_PMA_01.input3D[0].input3Dx', f = True)
+pmaPurpose = mc.getAttr(name + side + part + '_yRibbonFollicle_0' + str(num) + '.rotateX')
+pmaIn = pmaPurpose * -1
+mc.setAttr(name + side + part + '_follicle_0' + str(num) + '_rotfix_PMA_01.input3D[1].input3Dx', pmaIn)
+
+#if not 'arm' in part and not 'RGT' in side: FIGURE OUT LATER
+#create MD node
+mc.createNode('multiplyDivide', n = name + side + part + '_follicle_0' + str(num) + '_rotfix_MD_01')
+mc.connectAttr(name + side + part + '_follicle_0' + str(num) + '_rotfix_PMA_01.output3D', name + side + part + '_follicle_0' + str(num) + '_rotfix_MD_01.input1', f = True)
+mc.setAttr(name + side + part + '_follicle_0' + str(num) + '_rotfix_MD_01.input2X', -1)
+mc.connectAttr(name + side + part + '_follicle_0' + str(num) + '_rotfix_MD_01.outputX', name + side + part + '_ribbonFollicle_0' + str(num) + side + part + '_cc_os_grp_01.rotateZ', f = True)
+#FIGURE OUT LATER
+#else:
+#    mc.connectAttr(name + side + part)
+
+##parenting and scene cleanup
+mc.parent(name + side + part + '_yRibbon_RIB_01', name + side + part + '_yRibbon_LOC_grp_01')
+mc.delete(name + part + side + '_yRibbon_clusters_grp_01')
+mc.parent(name + side + part + '_yRibbonFollicle_grp_01', name + part + side + '_ribbon_extras_grp_01')
