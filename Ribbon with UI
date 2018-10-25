@@ -1,4 +1,4 @@
-################## R I B B O N   W I T H   U I ########################
+ ################## R I B B O N   W I T H   U I ########################
 
 import maya.cmds as mc
 import pymel.core as pm
@@ -263,10 +263,14 @@ def ribbonVar(*args):
             mc.parent(lol,heh)
             print lol
             
+            mc.shadingNode('condition', n = name + '_ribbon_bone_vis_COND_01', au = True,)
             mc.connectAttr(name + '_ribbon_bone_vis_COND_01.outColorR', lol + '.visibility')
 
             numT = heh.split('_')
-            num = numT[4]
+            if 'LFT' not in heh and 'RGT' not in heh:
+                num = numT[3]
+            else:
+                num = numT[4]
             ccFoll = mc.circle(n = name + side + part + '_ribbonFollicle_' + num + side + part + '_cc_01')
             ccGrp = mc.group(empty = True, n = name + side + part + '_ribbonFollicle_' + num + side + part + '_cc_os_grp_01')
 
